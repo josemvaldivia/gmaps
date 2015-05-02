@@ -1,40 +1,121 @@
 var map;
-      function initialize() {
-          var myLatlng = new google.maps.LatLng(-16.393298, -71.535254);
-          var mapOptions = {zoom: 15,
-                            center: myLatlng,
-                            mapTypeId: google.maps.MapTypeId.ROADMAP
-          }
+var directionsDisplay;
+var directionsService= new google.maps.DirectionsService();
+var gmarkers=[]
+function initialize() {
 
-          map = new google.maps.Map(document.getElementById("map_canvas"), mapOptions);
-          var southWest = new google.maps.LatLng(-16.397509, -71.544802);
-          var northEast = new google.maps.LatLng(-16.390704, -71.528967);
-          var bounds = new google.maps.LatLngBounds(southWest,northEast);
-          map.fitBounds(bounds);
-          var lngSpan = northEast.lng() - southWest.lng();
-          var latSpan = northEast.lat() - southWest.lat();
-          for (var i = 0; i < 5; i++) {
-            var location = new google.maps.LatLng(southWest.lat() + latSpan * Math.random(),
-            southWest.lng() + lngSpan * Math.random());
-            var marker = new google.maps.Marker({ position: location,
-                                                  map: map,
-                                                  icon: "http://www.folsomzoofriends.org/images/stories/misc/car_icon.gif",                                     
-            });
-            var j = i + 1;
-            marker.setTitle(j.toString());
-            attachMessage(marker, j);
+    
+    var arequipa = new google.maps.LatLng(-16.393298, -71.535254);
+    var mapOptions = {zoom: 15,
+                      center: arequipa,
+                      mapTypeId: google.maps.MapTypeId.ROADMAP
+    }
+
+    map = new google.maps.Map(document.getElementById("map_canvas"), mapOptions);
+    //directionsDisplay.setMap(map);
+    var southWest = new google.maps.LatLng(-16.397509, -71.544802);
+    var northEast = new google.maps.LatLng(-16.390704, -71.528967);
+    var bounds = new google.maps.LatLngBounds(southWest,northEast);
+    map.fitBounds(bounds);
+    var lngSpan = northEast.lng() - southWest.lng();
+    var latSpan = northEast.lat() - southWest.lat();
+    for (var i = 0; i < 5; i++) {
+      var location = new google.maps.LatLng(southWest.lat() + latSpan * Math.random(),
+      southWest.lng() + lngSpan * Math.random());
+      var marker = new google.maps.Marker({ position: location,
+                                            map: map,
+                                            icon: "http://www.folsomzoofriends.org/images/stories/misc/car_icon.gif",                                     
+      });
+      var j = i + 1;
+      pos=[marker.position.A,marker.position.F]
+      gmarkers.push(marker);
+      marker.setTitle(j.toString());
+      attachMessage(marker, j);
+      CalcRoute(marker);
 
 
-            function attachMessage(marker, number) {
-                var infowindow = new google.maps.InfoWindow(
-                                { content: "car"+number,
-                                  size: new google.maps.Size(50,50)
-                                });
-                google.maps.event.addListener(marker, 'click', function() {
-                infowindow.open(map,marker);
-                });
-            }
+    }
+
+}
+
+
+function CalcRoute(marker)
+{
+  var southWest = new google.maps.LatLng(-16.397509, -71.544802);
+  var northEast = new google.maps.LatLng(-16.390704, -71.528967);
+  var bounds = new google.maps.LatLngBounds(southWest,northEast);
+  map.fitBounds(bounds);
+  var lngSpan = northEast.lng() - southWest.lng();
+  var latSpan = northEast.lat() - southWest.lat();
+  var start= marker.position
+  var end =  new google.maps.LatLng(southWest.lat() + latSpan * Math.random(),
+              southWest.lng() + lngSpan * Math.random());
   
-          }
+  /*directionsDisplay=new google.maps.DirectionsRenderer(
+      {
+        map:map,
+        suppressMarkers : true,
+        preserveViewport: false
+      });
+*/
+  var request = {
+    origin: start,
+    destination: end,
+    travelMode: google.maps.TravelMode.DRIVING
+  };
+
+  directionsService.route(request,function(result,status)
+  {
+    MarkerMove(marker,result.routes[0].legs)
+    
+  });
+
+}
+
+function attachMessage(marker, number) {
+    var infowindow = new google.maps.InfoWindow(
+                    { content: "car"+number,
+                      size: new google.maps.Size(50,50)
+                    });
+    google.maps.event.addListener(marker, 'click', function() {
+    infowindow.open(map,marker);
+    });
+
+}
+
+function MarkerMove(marker,route)
+{
+    for (var i=0;i<route[0].steps.length;i++)
+    {
+      setTimeout(movement(marker,route[0].steps[i].end_point),1000);
       
-      }
+
+    }
+    
+}
+
+    
+function movement (marker,position)
+{
+        var deltas=100;
+        var delay=10;
+        var deltalat=(marker.position.A-position.A)/deltas;
+        var deltalon=(marker.position.B-position.B)/deltas;
+        var pos=marker.position;
+        
+        for(var i=0;i<100;i++)
+        {
+          pos.A+=deltalat;
+          pos.B+=deltalon;
+          setTimeout(marker.setPosition(position),10000);
+        }
+}
+
+function sleep(milliseconds) {
+  var start = new Date().getTime();
+  for (var i = 0; i < 1e7; i++) {
+    if ((new Date().getTime() - start) > milliseconds){
+      break;
+    }
+  }
+}
