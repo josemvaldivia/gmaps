@@ -2,6 +2,8 @@ var map;
 var directionsDisplay;
 var directionsService= new google.maps.DirectionsService();
 var gmarkers=[]
+var routess=[]
+var directionsDisp=[]
 function initialize() {
 
     
@@ -15,49 +17,71 @@ function initialize() {
     //directionsDisplay.setMap(map);
     var southWest = new google.maps.LatLng(-16.397509, -71.544802);
     var northEast = new google.maps.LatLng(-16.390704, -71.528967);
-    var bounds = new google.maps.LatLngBounds(southWest,northEast);
-    map.fitBounds(bounds);
-    var lngSpan = northEast.lng() - southWest.lng();
-    var latSpan = northEast.lat() - southWest.lat();
+    //GetRandomPosition(southWest,northEast);
     for (var i = 0; i < 5; i++) {
-      var location = new google.maps.LatLng(southWest.lat() + latSpan * Math.random(),
-      southWest.lng() + lngSpan * Math.random());
-      var marker = new google.maps.Marker({ position: location,
+      var location = GetRandomPosition(southWest,northEast)
+      CreateMarker(location,(i+1).toString());
+      /*var marker = new google.maps.Marker({ position: location,
                                             map: map,
                                             icon: "http://www.folsomzoofriends.org/images/stories/misc/car_icon.gif",                                     
       });
       var j = i + 1;
-      pos=[marker.position.A,marker.position.F]
-      gmarkers.push(marker);
+      //pos=[marker.position.A,marker.position.F]
+      //gmarkers.push(marker);
       marker.setTitle(j.toString());
       attachMessage(marker, j);
-      CalcRoute(marker);
-
+      CalcRoute(marker);    */
 
     }
+
+    for (var i=0;i<gmarkers.length;i++)
+    {
+      CalcRoute(gmarkers[i],i);
+    }
+
+    //console.log(gmarkers);
+    
+}
+
+function CreateMarker(pos,id)
+{
+  var marker= new google.maps.Marker({  position: pos,
+                                        map:map,
+                                        icon:"http://www.folsomzoofriends.org/images/stories/misc/car_icon.gif",
+                                        title: id,
+                                        duration:5000,
+                                        easing: "easeInOutSine"
+  });
+
+  gmarkers.push(marker);
 
 }
 
 
-function CalcRoute(marker)
+function GetRandomPosition(swest,neast)
+{
+  var bounds = new google.maps.LatLngBounds(swest,neast);
+  var lngSpan=neast.lng()- swest.lng();
+  var latSpan= neast.lat() - swest.lat();
+
+  return new google.maps.LatLng(swest.lat() + latSpan * Math.random(),
+              swest.lng() + lngSpan * Math.random());
+
+}
+
+
+function CalcRoute(marker,id)
 {
   var southWest = new google.maps.LatLng(-16.397509, -71.544802);
   var northEast = new google.maps.LatLng(-16.390704, -71.528967);
-  var bounds = new google.maps.LatLngBounds(southWest,northEast);
-  map.fitBounds(bounds);
-  var lngSpan = northEast.lng() - southWest.lng();
-  var latSpan = northEast.lat() - southWest.lat();
-  var start= marker.position
-  var end =  new google.maps.LatLng(southWest.lat() + latSpan * Math.random(),
-              southWest.lng() + lngSpan * Math.random());
   
-  /*directionsDisplay=new google.maps.DirectionsRenderer(
-      {
-        map:map,
-        suppressMarkers : true,
-        preserveViewport: false
-      });
-*/
+
+  var start= marker.position;
+  var end =  GetRandomPosition(southWest,northEast);
+  
+  var rendererOptions = { map: map, suppressMarkers:false };
+  directionsDisp.push(new google.maps.DirectionsRenderer(rendererOptions));
+
   var request = {
     origin: start,
     destination: end,
@@ -66,11 +90,35 @@ function CalcRoute(marker)
 
   directionsService.route(request,function(result,status)
   {
-    MarkerMove(marker,result.routes[0].legs)
+    if (status== google.maps.DirectionsStatus.OK )
+    {
+      routess.push(result);
+      directionsDisp[id].setDirections(result);
+      //console.log(result.routes[0].legs[0].steps)
+      for (var x=0; x< result.routes[0].legs[0].steps.length;x++)
+      {  
+
+        MarkerMove(gmarkers[id],result.routes[0].legs[0].steps[x],gmarkers[id]);
+        
+      }
     
+    }
+
   });
+  
 
 }
+
+function MarkerMove(marker,route,id)
+{
+    
+      var LatlLng2=new google.maps.LatLng(route.end_point.A,
+                                          route.end_point.F);
+      marker.setPosition(LatlLng2);
+      return;
+}
+
+
 
 function attachMessage(marker, number) {
     var infowindow = new google.maps.InfoWindow(
@@ -83,33 +131,6 @@ function attachMessage(marker, number) {
 
 }
 
-function MarkerMove(marker,route)
-{
-    for (var i=0;i<route[0].steps.length;i++)
-    {
-      setTimeout(movement(marker,route[0].steps[i].end_point),1000);
-      
-
-    }
-    
-}
-
-    
-function movement (marker,position)
-{
-        var deltas=100;
-        var delay=10;
-        var deltalat=(marker.position.A-position.A)/deltas;
-        var deltalon=(marker.position.B-position.B)/deltas;
-        var pos=marker.position;
-        
-        for(var i=0;i<100;i++)
-        {
-          pos.A+=deltalat;
-          pos.B+=deltalon;
-          setTimeout(marker.setPosition(position),10000);
-        }
-}
 
 function sleep(milliseconds) {
   var start = new Date().getTime();
